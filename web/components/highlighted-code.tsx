@@ -98,7 +98,7 @@ export function HighlightedCode({ content, language }: Props) {
   if (html) {
     return (
       <div
-        className="overflow-x-auto rounded-lg border text-sm [&_pre]:!bg-card [&_pre]:!p-4 [&_pre]:!m-0"
+        className="overflow-x-auto rounded-lg border text-sm [&_pre]:bg-card! [&_pre]:p-4! [&_pre]:m-0!"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
