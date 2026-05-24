@@ -1,0 +1,21 @@
+# Go
+/bin/
+*.exe
+*.test
+*.out
+
+# Env
+.env
+.env.local
+web/.env.local
+
+# Node / Next
+web/node_modules/
+web/.next/
+web/out/
+web/.turbo/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store

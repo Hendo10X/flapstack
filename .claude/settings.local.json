@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\Hendo\\\\Documents\\\\flapstack\")",
+      "Bash(go mod *)",
+      "Bash(go build *)",
+      "Bash(docker --version)",
+      "Bash(psql --version)",
+      "Bash(go get *)",
+      "Bash(go run *)",
+      "Bash(curl -s http://localhost:8080/healthz)",
+      "Bash(curl -s -X POST http://localhost:8080/api/v1/snippets -H \"Content-Type: application/json\" -d '{\"title\":\"hello\",\"content\":\"console.log\\(\\\\\"hi\\\\\"\\)\",\"language\":\"javascript\"}')",
+      "Bash(curl -s http://localhost:8080/api/v1/snippets)",
+      "Bash(rm -rf node_modules .next package-lock.json)",
+      "Bash(npm install *)",
+      "Bash(curl -s -X POST http://localhost:8080/api/v1/snippets -H \"Content-Type: application/json\" -d '{\"title\":\"burn test\",\"content\":\"secret\",\"ttl\":\"1h\",\"burnAfterRead\":true,\"password\":\"hunter2\"}')",
+      "Bash(npx tsc *)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; \"ok\")",
+      "Bash(curl -sf http://localhost:8080/healthz)",
+      "Bash(curl -s http://localhost:8080/api/v1/billing/me)",
+      "PowerShell(Set-Location 'C:\\\\Users\\\\Hendo\\\\Documents\\\\flapstack\\\\web'; $env:NODE_OPTIONS = \"--max-old-space-size=4096\"; npx tsc --noEmit 2>&1 | Select-Object -First 60)",
+      "Bash(curl -s -X POST \"http://localhost:8080/api/v1/snippets/0e03f0df-4837-405a-88a1-dbe1550c14a7/comments\" -H \"Content-Type: application/json\" -d '{\"authorName\":\"alice\",\"body\":\"works now!\"}')",
+      "Bash(curl -s http://localhost:8080/api/v1/snippets/0e03f0df-4837-405a-88a1-dbe1550c14a7/comments)"
+    ]
+  }
+}
