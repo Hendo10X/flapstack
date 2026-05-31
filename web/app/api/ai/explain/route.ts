@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
 
   // 1) Claim a usage credit against the backend (it enforces the 5/mo limit).
   const proToken = req.headers.get("X-FlapStack-Pro") || "";
+  const deviceId = req.headers.get("X-FlapStack-Device-ID") || "";
   const fwd =
     req.headers.get("x-forwarded-for") ||
     req.headers.get("x-real-ip") ||
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     method: "POST",
     headers: {
       "X-FlapStack-Pro": proToken,
+      "X-FlapStack-Device-ID": deviceId,
       "X-Forwarded-For": fwd,
     },
   });
