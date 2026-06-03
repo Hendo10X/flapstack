@@ -10,6 +10,7 @@ export type Snippet = {
   visibility: Visibility;
   expiresAt?: string;
   burnAfterRead: boolean;
+  burnLocked: boolean;
   passwordLocked: boolean;
   forkOfId?: string;
   forkCount?: number;
@@ -55,6 +56,10 @@ export async function listSnippets(): Promise<Snippet[]> {
 
 export async function getSnippet(id: string): Promise<Snippet> {
   return jsonOrThrow(await fetch(`${API}/api/v1/snippets/${id}`, { cache: "no-store" }));
+}
+
+export async function burnSnippet(id: string): Promise<Snippet> {
+  return jsonOrThrow(await fetch(`${API}/api/v1/snippets/${id}/burn`, { method: "POST" }));
 }
 
 export async function verifySnippet(id: string, password: string): Promise<Snippet> {
@@ -108,7 +113,22 @@ export async function getBillingStatus(): Promise<BillingStatus> {
   const token = getProToken();
   const res = await fetch(
     `${API}/api/v1/billing/me${token ? `?token=${encodeURIComponent(token)}` : ""}`,
-    { cache: "no-store", headers: token ? { "X-FlapStack-Pro": token } : {} }
+    { cache: "no-store", headers: {
+      ...(token ? { "X-FlapStack-Pro": token } : {}),
+      "X-FlapStack-Device-ID": getDeviceId(),
+    } }
   );
   return jsonOrThrow(res);
+}
+
+const DEVICE_ID_KEY = "flapstack:device-id";
+
+export function getDeviceId(): string {
+  if (typeof window === "undefined") return "ssr";
+  let id = window.localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    window.localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -14,12 +15,41 @@ import (
 	"flapstack/internal/models"
 )
 
+type rateLimiter struct {
+	mu      sync.Mutex
+	clients map[string]*clientData
+}
+
+type clientData struct {
+	attempts int
+	window   time.Time
+}
+
+func (rl *rateLimiter) Allow(ip string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	c, exists := rl.clients[ip]
+	now := time.Now()
+	if !exists || now.Sub(c.window) > 10*time.Second {
+		rl.clients[ip] = &clientData{attempts: 1, window: now}
+		return true
+	}
+	
+	if c.attempts >= 5 {
+		return false
+	}
+	c.attempts++
+	return true
+}
+
 type Handler struct {
-	DB *gorm.DB
+	DB      *gorm.DB
+	limiter *rateLimiter
 }
 
 func New(db *gorm.DB) *Handler {
-	return &Handler{DB: db}
+	return &Handler{DB: db, limiter: &rateLimiter{clients: make(map[string]*clientData)}}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -56,6 +86,7 @@ type snippetView struct {
 	Visibility     string     `json:"visibility"`
 	ExpiresAt      *time.Time `json:"expiresAt,omitempty"`
 	BurnAfterRead  bool       `json:"burnAfterRead"`
+	BurnLocked     bool       `json:"burnLocked"`
 	PasswordLocked bool       `json:"passwordLocked"`
 	ForkOfID       *string    `json:"forkOfId,omitempty"`
 	ForkCount      int        `json:"forkCount"`
@@ -72,6 +103,7 @@ func toView(s *models.Snippet, withContent bool) snippetView {
 		Visibility:     string(s.Visibility),
 		ExpiresAt:      s.ExpiresAt,
 		BurnAfterRead:  s.BurnAfterRead,
+		BurnLocked:     s.BurnAfterRead && !withContent,
 		PasswordLocked: s.PasswordHash != nil,
 		ForkOfID:       s.ForkOfID,
 		ForkCount:      s.ForkCount,
@@ -207,10 +239,31 @@ func (h *Handler) GetSnippet(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, toView(s, false))
 		return
 	}
-	view := toView(s, true)
 	if s.BurnAfterRead {
-		_ = h.DB.Delete(s).Error
+		// Don't reveal content on GET; client must call /burn
+		writeJSON(w, http.StatusOK, toView(s, false))
+		return
 	}
+	view := toView(s, true)
+	writeJSON(w, http.StatusOK, view)
+}
+
+func (h *Handler) BurnSnippet(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	s, handled := h.loadSnippet(w, id)
+	if handled {
+		return
+	}
+	if !s.BurnAfterRead {
+		writeErr(w, http.StatusBadRequest, "not_burnable", "snippet is not burn-after-read")
+		return
+	}
+	if s.PasswordHash != nil {
+		writeErr(w, http.StatusUnauthorized, "password_required", "use /verify instead")
+		return
+	}
+	view := toView(s, true)
+	_ = h.DB.Delete(s).Error
 	writeJSON(w, http.StatusOK, view)
 }
 
@@ -225,6 +278,13 @@ func (h *Handler) VerifySnippet(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid_json", "invalid json")
 		return
 	}
+	
+	ip := clientIP(r)
+	if !h.limiter.Allow(ip) {
+		writeErr(w, http.StatusTooManyRequests, "rate_limited", "Too many attempts. Please wait 10 seconds.")
+		return
+	}
+
 	s, handled := h.loadSnippet(w, id)
 	if handled {
 		return

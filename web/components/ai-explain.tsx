@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getProToken } from "@/lib/api";
+import { getProToken, getDeviceId } from "@/lib/api";
 import { Paywall } from "@/components/paywall";
 
 type Props = {
@@ -35,6 +35,7 @@ export function AIExplain({ content, language, title }: Props) {
         headers: {
           "Content-Type": "application/json",
           "X-FlapStack-Pro": getProToken(),
+          "X-FlapStack-Device-ID": getDeviceId(),
         },
         body: JSON.stringify({ content, language, title }),
       });

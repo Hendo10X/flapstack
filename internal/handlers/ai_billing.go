@@ -47,6 +47,13 @@ func clientIP(r *http.Request) string {
 	return host
 }
 
+func identity(r *http.Request) string {
+	if deviceID := r.Header.Get("X-FlapStack-Device-ID"); deviceID != "" {
+		return deviceID
+	}
+	return clientIP(r)
+}
+
 func currentPeriod() string {
 	return time.Now().UTC().Format("2006-01")
 }
@@ -84,11 +91,11 @@ func (h *Handler) ClaimAIUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := clientIP(r)
+	id := identity(r)
 	period := currentPeriod()
 
 	// Upsert + increment in a single statement. Postgres ON CONFLICT keeps it atomic.
-	row := models.AIUsage{IP: ip, Period: period, Count: 1, UpdatedAt: time.Now().UTC()}
+	row := models.AIUsage{IP: id, Period: period, Count: 1, UpdatedAt: time.Now().UTC()}
 	err := h.DB.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "ip"}, {Name: "period"}},
 		DoUpdates: clause.Assignments(map[string]any{
@@ -103,7 +110,7 @@ func (h *Handler) ClaimAIUsage(w http.ResponseWriter, r *http.Request) {
 
 	// Re-read to get the post-increment count.
 	var cur models.AIUsage
-	if err := h.DB.First(&cur, "ip = ? AND period = ?", ip, period).Error; err != nil {
+	if err := h.DB.First(&cur, "ip = ? AND period = ?", id, period).Error; err != nil {
 		writeErr(w, http.StatusInternalServerError, "db_error", err.Error())
 		return
 	}
@@ -118,7 +125,7 @@ func (h *Handler) ClaimAIUsage(w http.ResponseWriter, r *http.Request) {
 	if !allowed {
 		// We over-incremented; roll back so they don't keep losing quota on every refresh.
 		h.DB.Model(&models.AIUsage{}).
-			Where("ip = ? AND period = ?", ip, period).
+			Where("ip = ? AND period = ?", id, period).
 			Update("count", gorm.Expr("count - 1"))
 		writeJSON(w, http.StatusPaymentRequired, aiUsageResp{
 			Allowed: false, Remaining: 0, Limit: limit, Pro: false,
@@ -140,10 +147,10 @@ func (h *Handler) GetBillingMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := clientIP(r)
+	id := identity(r)
 	period := currentPeriod()
 	var cur models.AIUsage
-	err := h.DB.First(&cur, "ip = ? AND period = ?", ip, period).Error
+	err := h.DB.First(&cur, "ip = ? AND period = ?", id, period).Error
 	count := 0
 	if err == nil {
 		count = cur.Count

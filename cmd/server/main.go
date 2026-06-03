@@ -32,7 +32,7 @@ func main() {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{cfg.FrontendOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-FlapStack-Pro"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-FlapStack-Pro", "X-FlapStack-Device-ID"},
 		AllowCredentials: true,
 	}))
 
@@ -48,6 +48,7 @@ func main() {
 			r.Get("/", h.ListSnippets)
 			r.Post("/", h.CreateSnippet)
 			r.Get("/{id}", h.GetSnippet)
+			r.Post("/{id}/burn", h.BurnSnippet)
 			r.Post("/{id}/verify", h.VerifySnippet)
 			r.Put("/{id}", h.UpdateSnippet)
 			r.Delete("/{id}", h.DeleteSnippet)
