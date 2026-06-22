@@ -27,7 +27,5 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Tag{},
 		&models.Collection{},
 		&models.Comment{},
-		&models.AIUsage{},
-		&models.ProToken{},
 	)
 }

@@ -32,7 +32,7 @@ func main() {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{cfg.FrontendOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-FlapStack-Pro", "X-FlapStack-Device-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-FlapStack-Pro"},
 		AllowCredentials: true,
 	}))
 
@@ -48,7 +48,6 @@ func main() {
 			r.Get("/", h.ListSnippets)
 			r.Post("/", h.CreateSnippet)
 			r.Get("/{id}", h.GetSnippet)
-			r.Post("/{id}/burn", h.BurnSnippet)
 			r.Post("/{id}/verify", h.VerifySnippet)
 			r.Put("/{id}", h.UpdateSnippet)
 			r.Delete("/{id}", h.DeleteSnippet)
@@ -56,13 +55,7 @@ func main() {
 			r.Get("/{id}/comments", h.ListComments)
 			r.Post("/{id}/comments", h.CreateComment)
 		})
-		r.Route("/ai", func(r chi.Router) {
-			r.Post("/usage/claim", h.ClaimAIUsage)
-		})
-		r.Route("/billing", func(r chi.Router) {
-			r.Get("/me", h.GetBillingMe)
-			r.Post("/polar/webhook", h.PolarWebhook)
-		})
+
 	})
 
 	log.Printf("listening on :%s", cfg.Port)
