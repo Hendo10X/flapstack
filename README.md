@@ -7,7 +7,6 @@ Platform for creating, storing, organizing, searching, and sharing code snippets
 - **Backend**: Go 1.25, chi router, GORM, PostgreSQL (Neon-friendly)
 - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui
 - **AI**: Vercel AI SDK + Groq (free tier)
-- **Billing**: Polar (scaffolded)
 
 ## Layout
 
@@ -15,20 +14,18 @@ Platform for creating, storing, organizing, searching, and sharing code snippets
 cmd/server/                    # main entrypoint
 internal/
   config/                      # env loader
-  handlers/                    # HTTP handlers (snippets, AI usage, Polar webhook)
+  handlers/                    # HTTP handlers (snippets)
   models/                      # GORM models
   store/                       # DB open + automigrate
   auth/                        # JWT middleware (stub)
 web/                           # Next.js app
   app/
     api/ai/explain/route.ts    # Groq streaming endpoint
-    checkout/success/page.tsx  # Polar checkout callback
     new/                       # Create snippet page
     share-env/                 # Specialized .env-sharing flow
     s/[id]/                    # View snippet page
-  components/
+  components:
     ai-explain.tsx             # Explain-with-AI button + stream
-    paywall.tsx                # Upgrade dialog
     snippet-actions.tsx        # Copy / curl / VS Code / QR actions
     ui/                        # shadcn components
 ```
@@ -61,7 +58,7 @@ Backend on `:8080`, frontend on `:3000`.
 - **Markdown live preview** when language = Markdown
 - **Quick actions** on view page — copy, raw URL, curl, Open in VS Code, QR code
 - **/share-env** — purpose-built flow for sharing `.env` files (burn-after-read + password by default)
-- **AI explain** — Groq-powered streaming code explanations. 5 free uses per IP per month, then Polar paywall.
+- **AI explain** — Groq-powered streaming code explanations.
 
 ## API
 
@@ -74,39 +71,12 @@ Backend on `:8080`, frontend on `:3000`.
 | POST   | `/api/v1/snippets/{id}/verify`             | `{password}` → returns content if correct        |
 | PUT    | `/api/v1/snippets/{id}`                    |                                                  |
 | DELETE | `/api/v1/snippets/{id}`                    |                                                  |
-| POST   | `/api/v1/ai/usage/claim`                   | Increments per-IP counter, 402 if over limit     |
-| GET    | `/api/v1/billing/me`                       | `{pro, remaining, limit}`                        |
-| POST   | `/api/v1/billing/polar/webhook`            | HMAC-verified, creates `ProToken` on subscribe   |
 
 The Next.js side adds:
 
 | Method | Path                       | Notes                                       |
 | ------ | -------------------------- | ------------------------------------------- |
 | POST   | `/api/ai/explain`          | Streams Groq output as plain text           |
-| GET    | `/checkout/success?token=` | Stores Pro token in localStorage            |
-
-## Wiring up Polar
-
-The Polar integration is scaffolded but inert until you configure it:
-
-1. Create a Polar sandbox account and a "FlapStack Pro" product.
-2. Generate an access token and a webhook secret.
-3. Fill in the backend `.env`:
-   ```
-   POLAR_WEBHOOK_SECRET=...
-   POLAR_ACCESS_TOKEN=...
-   POLAR_PRODUCT_ID=...
-   ```
-4. Add the webhook endpoint in Polar's dashboard:
-   `https://<your-backend>/api/v1/billing/polar/webhook`
-5. In Polar's checkout, set the success URL to:
-   `https://<your-frontend>/checkout/success?token={the_token_returned_by_the_webhook}`
-6. Fill in `web/.env.local`:
-   ```
-   NEXT_PUBLIC_POLAR_CHECKOUT_URL=https://<polar-checkout-link>
-   ```
-
-The webhook handler in `internal/handlers/ai_billing.go` validates the HMAC and creates a `ProToken` row. The browser stores it in localStorage and sends it as `X-FlapStack-Pro` on every AI call.
 
 ## Wiring up Groq
 

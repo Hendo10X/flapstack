@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ApiError, getSnippet, verifySnippet, burnSnippet, type Snippet } from "@/lib/api";
+import { ApiError, getSnippet, verifySnippet, type Snippet } from "@/lib/api";
 import { SnippetActions } from "@/components/snippet-actions";
 import { AIExplain } from "@/components/ai-explain";
 import { HighlightedCode } from "@/components/highlighted-code";
@@ -27,10 +27,9 @@ export default function SnippetPage({
   const [notFound, setNotFound] = useState(false);
   const [expired, setExpired] = useState(false);
   const [burnedNotice, setBurnedNotice] = useState(false);
+  const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
-  const [burning, setBurning] = useState(false);
-  const [burnError, setBurnError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,22 +73,6 @@ export default function SnippetPage({
       );
     } finally {
       setVerifying(false);
-    }
-  }
-
-  async function onBurn() {
-    setBurning(true);
-    setBurnError(null);
-    try {
-      const s = await burnSnippet(id);
-      setSnippet(s);
-      setBurnedNotice(true);
-    } catch (err) {
-      setBurnError(
-        err instanceof Error ? err.message : "Failed to reveal snippet"
-      );
-    } finally {
-      setBurning(false);
     }
   }
 
@@ -165,29 +148,9 @@ export default function SnippetPage({
             </div>
           )}
 
-          {snippet.burnLocked && !snippet.passwordLocked && !snippet.content && (
-            <Card className="mt-6">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-sm">
-                  <Flame className="size-4 text-destructive" />
-                  This snippet is burn-after-read.
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  The content is securely locked. Once you reveal it, it will be permanently deleted from the server.
-                </p>
-                {burnError && (
-                  <p className="mt-4 text-sm text-destructive">{burnError}</p>
-                )}
-                <Button className="mt-4" onClick={onBurn} disabled={burning} variant="destructive">
-                  {burning ? "Revealing…" : "Reveal & Destroy"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
           {snippet.passwordLocked && !snippet.content && (
             <Card className="mt-6">
-              <CardContent className="pt-6">
+              <CardContent>
                 <div className="flex items-center gap-2 text-sm">
                   <Lock className="size-4" />
                   This snippet is password-protected.

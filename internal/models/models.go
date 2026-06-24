@@ -75,23 +75,4 @@ type Comment struct {
 	CreatedAt  time.Time `json:"createdAt"`
 }
 
-// AIUsage tracks AI feature usage per identity per month. Identity is the
-// client IP for anonymous users; when a ProToken is presented, no row is
-// written.
-type AIUsage struct {
-	IP        string    `gorm:"primaryKey;type:text"`
-	Period    string    `gorm:"primaryKey;type:text"` // YYYY-MM
-	Count     int       `gorm:"not null;default:0"`
-	UpdatedAt time.Time
-}
 
-// ProToken is an opaque per-customer access token issued after a successful
-// Polar checkout. It's stored client-side in localStorage and sent as a header.
-type ProToken struct {
-	Token            string `gorm:"primaryKey;type:text"`
-	PolarCustomerID  string `gorm:"type:text;index"`
-	PolarSubscription string `gorm:"type:text;index"`
-	Email            string `gorm:"type:text;index"`
-	CreatedAt        time.Time
-	RevokedAt        *time.Time
-}
